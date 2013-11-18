@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net;
 using System.Linq;
 using System.Collections.Generic;
 using System.Xml;
@@ -12,11 +13,11 @@ namespace IRCbot{
 		public static void Main(string[] args){
 			int i = 0;
 			string received, sender, message, Message;
-			string[] mods = Constants.mods; //can't rely on +o because jtv servers can be very slow with applying modes
-			Regex parserawirc = new Regex(@":(.*)!.*(?:privmsg).*?:(.*)", RegexOptions.IgnoreCase | RegexOptions.Compiled); // compiled for that lovely speed
+			string[] mods = Constants.mods;										//can't rely on +o because jtv servers can be very slow with applying modes
+			Regex parserawirc = new Regex(@":(.*)!.*(?:privmsg).*?:(.*)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
 			connect();
-			while (true) { // TODO: Giant catch that logs all errors 'cept Keyboard Break and leaves bot running lovely
+			while (true) {														// TODO: Giant catch that logs all errors 'cept Keyboard Break and leaves bot running lovely
 				i++;
 				received = MyGlobals.input.ReadLine().Trim(new Char[] { '\r', '\n', ' ' });
 
@@ -33,7 +34,7 @@ namespace IRCbot{
 					/* log their latest lines */
 					object[] stalkinfo = { DateTime.Now, Message };
 					MyGlobals.stalk[sender] = stalkinfo;
-					SerializeObject(MyGlobals.stalk, "stalk.xml"); // TODO: move this to PONG to reduce writes, just here for now to test
+					SerializeObject(MyGlobals.stalk, "stalk.xml");				// TODO: move this to PONG to reduce writes, just here for now to test
 
 					/* print to console */
 					if (new string[] { "dharm", "darm", "dhram" }.Any(received.Contains)) //http://stackoverflow.com/a/2912483/625919
@@ -43,14 +44,16 @@ namespace IRCbot{
 					}
 
 					/* mod */
-					if (mods.Contains(sender)) { // TODO: make sure you append longspamlist if over x lines
-						ModClass.parse(message);
-						BasicCommandsClass.parse(message);
+					if (mods.Contains(sender)) {								// TODO: make sure you append longspamlist if over x lines
+						if (message[0] == '!') {
+							ModClass.parse(message);
+							BasicCommandsClass.parse(message);
+						}
 					}
 					/* pleb */
 					else {
 						BanLogicClass.parse(message);
-						if (((DateTime.Now - MyGlobals.pleblag).TotalSeconds > 15) && (MyGlobals.isbanned == false)) {
+						if (((DateTime.Now - MyGlobals.pleblag).TotalSeconds >= 15) && (MyGlobals.isbanned == false) && (message[0] == '!')) {
 							BasicCommandsClass.parse(message);
 						}
 					}
@@ -67,12 +70,18 @@ namespace IRCbot{
 			}
 		}
 
+		/* 
+		 * Common methods 
+		 */
+
+		/* global vars */
 		public static class MyGlobals{
 			public static System.Net.Sockets.TcpClient sock = new System.Net.Sockets.TcpClient();
 			public static System.IO.TextReader input;
 			public static System.IO.TextWriter output;
 			public static DateTime pleblag;
-			public static Boolean isbanned = false;
+			public static Boolean	isbanned	= false;
+			public static Regex		untinyurl	= new Regex(@"(http://t\.co/\w+)", RegexOptions.Compiled);
 			public static int									ninja		= DeSerializeObject<int>("ninja.xml"),
 																modabuse	= DeSerializeObject<int>("modabuse.xml"),
 																bancount	= DeSerializeObject<int>("bancount.xml");
@@ -81,6 +90,7 @@ namespace IRCbot{
 			public static SerializableDictionary<string, object[]> stalk	= DeSerializeObject<SerializableDictionary<string, object[]>>("stalk.xml");
 		}
 
+		/* sends to channel */
 		public static void sendmessage(string msg){
 			WriteAndFlush("PRIVMSG " + Constants.chan + " :" + msg + "\n");
 		}
@@ -104,7 +114,7 @@ namespace IRCbot{
 				"PASS " + oauth + "\n" +
 				"USER " + nick + " 0 * :" + owner + "\n" +
 				"NICK " + nick + "\n" +
-				"JOIN " + chan + "\n" // could wait for 001 from server, but this joins anyway
+				"JOIN " + chan + "\n"											// could wait for 001 from server, but this works anyway
 			);
 		}
 		
@@ -124,7 +134,7 @@ namespace IRCbot{
 		}
 
 		/* store var into file */
-		public static void SerializeObject<T>(T serializableObject, string fileName) { //http://stackoverflow.com/questions/6115721/how-to-save-restore-serializable-object-to-from-file
+		public static void SerializeObject<T>(T serializableObject, string fileName) { // http://stackoverflow.com/questions/6115721/how-to-save-restore-serializable-object-to-from-file
 			try {
 				XmlDocument xmlDocument = new XmlDocument();
 				XmlSerializer serializer = new XmlSerializer(serializableObject.GetType());
@@ -183,12 +193,42 @@ namespace IRCbot{
 				else return "a day " + hour + "h";
 			}
 			else { // when day == 0
-				if (hour == 0) return rough + minute + "m";
+				if (hour == 0)
+					return rough + minute + "m";
 				else {
 					if (minute == 0) return rough + hour + "h";
 					else return rough + hour + "h " + minute + "m";
 				}
 			}
+		}
+
+		/* url unshorteners */
+		public static string untinyurl(string url) {
+			string redirectedto = url;													// http://stackoverflow.com/questions/3175062/long-urls-from-short-ones-using-c-sharp
+			int cycle = 3;
+			while (cycle > 0) {															// gives it 3 tries to untiny the URL before giving up
+				try {
+					HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
+					request.AllowAutoRedirect = false;
+					request.UserAgent = "Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.1.3) Gecko/20090824 Firefox/3.5.3 (.NET CLR 4.0.20506)";
+					HttpWebResponse response = (HttpWebResponse)request.GetResponse();
+					if ((int)response.StatusCode == 301 || (int)response.StatusCode == 302) {
+						redirectedto = response.Headers["Location"];
+						//log("Redirecting " + url + " to " + redirectedto + " because " + response.StatusCode);
+						cycle = 0;
+					}
+					else {
+						log("Not redirecting " + url + " because " + response.StatusCode);
+						cycle--;
+					}
+				}
+				catch (Exception ex) {
+					ex.Data.Add("url", url);
+					log(ex.ToString());
+					cycle--;
+				}
+			}
+			return redirectedto;
 		}
 	}
 }
