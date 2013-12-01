@@ -1,98 +1,113 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Data.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
+using System.Data.SqlServerCe;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace IRCbot {
-	public static class ModClass{
+	public class ModClass:MainClass{
 		public static void parse(string message) {
-
-			/* Simple stuff */
-			if (message.StartsWith("!sing"))	MainClass.sendmessage("/me sings the body electric ♫");
-			if (message.StartsWith("!dance"))	MainClass.sendmessage("/me roboboogies ⌐[º-°⌐] [¬º-°]¬");
-			if (message.StartsWith("!status"))	MainClass.sendmessage("v8.0.0 N:" + MainClass.MyGlobals.ninja + " MA:" + MainClass.MyGlobals.modabuse);
-
-			/* get user's last words */
-			if (message.StartsWith("!stalk ")) {
-				string user = message.Substring(message.IndexOf(" ") + 1).ToLower().Trim();
-				object[] stalkinfo;
-				if (MainClass.MyGlobals.stalk.TryGetValue(user, out stalkinfo)) {
-					string deltatime = MainClass.deltatimeformat(DateTime.Now - (DateTime)stalkinfo[0]);
-					MainClass.sendmessage(user + " seen " + deltatime + " ago saying: " + stalkinfo[1]);
+			db dbcontext = MyGlobals.dbcontext;
+			var initialQuery = from x in dbcontext.ModCommands			//lazy!
+								where x.Command == message.Split(' ')[0]
+								select x;
+			foreach (var x in initialQuery) {
+				if (x.CommandParameter == "required") {
+					string userParameter = Regex.Match(message, @"(\w*) +(\w.*)").Groups[2].Value.Trim();
+					if (userParameter == "") {
+						sendmessage("No word entered.");
+					}
+					else if (x.Command == "stalk") {
+						try {
+							var stalk = (from y in dbcontext.Stalk
+										 where y.User == userParameter
+										 select y).First();
+							string deltatime = deltatimeformat(DateTime.Now - (DateTime)stalk.Time);
+							sendmessage(stalk.User + " seen " + deltatime + " ago saying " + stalk.Message);
+						}
+						catch (System.InvalidOperationException) {
+							sendmessage("No records of " + userParameter);
+						}
+					}
+					else {
+						var AutoBanListQuery = (from y in dbcontext.AutoBanList
+												where y.Word == userParameter
+												select y);
+						var AutoTempBanListQuery = (from y in dbcontext.AutoTempBanList
+													where y.Word == userParameter
+													select y);
+						switch (x.Command) {
+							case "add":
+								try {
+									AutoBanListQuery.First();
+									sendmessage(userParameter + " is already on the auto ban list.");
+								}
+								catch (System.InvalidOperationException) {
+									dbcontext.AutoBanList.InsertOnSubmit(new AutoBanList { Word = userParameter });
+									dbcontext.SubmitChanges();
+									MyGlobals.banwords.Remove(userParameter);
+									sendmessage(userParameter + " added to the auto ban list.");
+								}
+								break;
+							case "tempadd":
+								try {
+									AutoTempBanListQuery.First();
+									sendmessage(userParameter + " is already on the auto ban list.");
+								}
+								catch (System.InvalidOperationException) {
+									dbcontext.AutoTempBanList.InsertOnSubmit(new AutoTempBanList { Word = userParameter });
+									dbcontext.SubmitChanges();
+									MyGlobals.tempbanwords.Add(userParameter);
+									sendmessage(userParameter + " added to the temp ban list.");
+								}
+								break;
+							case "del":
+								try {
+									dbcontext.AutoBanList.DeleteOnSubmit(AutoBanListQuery.First());
+									dbcontext.SubmitChanges();
+									MyGlobals.banwords.Remove(userParameter);
+									sendmessage(userParameter + " removed from auto ban list");
+								}
+								catch (System.InvalidOperationException) {
+									sendmessage(userParameter + " not in the auto ban list.");
+								}
+								break;
+							case "tempdel":
+								try {
+									dbcontext.AutoTempBanList.DeleteOnSubmit(AutoTempBanListQuery.First());
+									dbcontext.SubmitChanges();
+									MyGlobals.tempbanwords.Remove(userParameter);
+									sendmessage(userParameter + " removed from auto temp ban list");
+								}
+								catch (System.InvalidOperationException) {
+									sendmessage(userParameter + " not in the auto temp ban list.");
+								}
+								break;
+						}
+					}
 				}
-				else MainClass.sendmessage("There are no records of " + user);
-			}
-
-			/* In times of spam, the bot doesn't speak. It just bans. */
-			if (message.StartsWith("!ninja ")) {
-				if (message.Contains("on")){
-					MainClass.MyGlobals.ninja = 1;
-					MainClass.sendmessage("I am the blade of Shakuras.");
+				if (x.Action == "message") sendmessage(x.Result);
+				if (x.Action == "set") {
+					var ModVariable =	(from y in dbcontext.ModVariables
+										where y.Variable == x.Result
+										select y).First();
+					ModVariable.Value = x.ResultParameter;
+					MyGlobals.ModVariables[x.Result] = x.ResultParameter;
+					dbcontext.SubmitChanges();
 				}
-				else if (message.Contains("off")) {
-					MainClass.MyGlobals.ninja = 0;
-					MainClass.sendmessage("The void claims its own.");
-				}
-				MainClass.SerializeObject(MainClass.MyGlobals.ninja, "ninja.xml");
-			}
-
-			/* Banlogic is relaxed during certain periods */
-			if (message.StartsWith("!modabuse ")) {
-				if (message.Contains("on")) {
-					MainClass.MyGlobals.modabuse = 2;
-					MainClass.sendmessage("Justice has come!");
-				}
-				else if (message.Contains("semi")) {
-					MainClass.MyGlobals.modabuse = 1;
-					MainClass.sendmessage("Calibrating void lenses.");
-				}
-				else if (message.Contains("off")) {
-					MainClass.MyGlobals.modabuse = 0;
-					MainClass.sendmessage("Awaiting the call.");
-				}
-				MainClass.SerializeObject(MainClass.MyGlobals.modabuse, "modabuse.xml");
-			}
-			
-			/* Add to autoban list */
-			if (message.StartsWith("!add ")) {
-				string banword = message.Substring(message.IndexOf(" ") + 1).ToLower().Trim();
-				MainClass.MyGlobals.banwords.Add(banword);
-				MainClass.SerializeObject(MainClass.MyGlobals.banwords, "banwords.xml");
-				MainClass.sendmessage(banword + " added to the autoban list.");
-			}
-
-			/* Remove from autoban list */
-			if (message.StartsWith("!del ") || message.StartsWith("!delete ") || message.StartsWith("!remove ")) {
-				string banword = message.Substring(message.IndexOf(" ") + 1).ToLower().Trim();
-				MainClass.MyGlobals.banwords.Remove(banword);
-				if (MainClass.MyGlobals.banwords.Contains(banword)){
-					MainClass.SerializeObject(MainClass.MyGlobals.banwords, "banwords.xml");
-					MainClass.sendmessage(banword + " removed from autoban list.");
-				}
-				else{
-					MainClass.sendmessage(banword + " not in banlist");
-				}
-			}
-
-			/* Add to tempban list */
-			if (message.StartsWith("!tempadd ")) {
-				string banword = message.Substring(message.IndexOf(" ") + 1).ToLower().Trim();
-				MainClass.MyGlobals.tempbanwords.Add(banword);
-				MainClass.SerializeObject(MainClass.MyGlobals.tempbanwords, "tempbanwords.xml");
-				MainClass.sendmessage(banword + " added to the autoban list.");
-			}
-
-			/* Remove from autoban list */
-			if (message.StartsWith("!tempdel ") || message.StartsWith("!dempdelete ") || message.StartsWith("!tempremove ")) {
-				string banword = message.Substring(message.IndexOf(" ") + 1).ToLower().Trim();
-				MainClass.MyGlobals.tempbanwords.Remove(banword);
-				if (MainClass.MyGlobals.tempbanwords.Contains(banword)) {
-					MainClass.SerializeObject(MainClass.MyGlobals.tempbanwords, "tempbanwords.xml");
-					MainClass.sendmessage(banword + " removed from tempban list.");
-				}
-				else {
-					MainClass.sendmessage(banword + " not in tempbanlist");
+				
+				/* command to test async, TODO: remove when done */
+				if (message.StartsWith("timeout")) { //http://stackoverflow.com/questions/100841/artificially-create-a-connection-timeout-error
+					MyGlobals.pleblag = DateTime.Now;
+					sendmessage("Timing out...");
+					Console.WriteLine("Timing out...");
+					Task<string> DLedData = DLdata("http://www.google.com:81/");
+					sendmessage("Timeout text is " + DLedData.Result);
+					Console.WriteLine("Timeout text is " + DLedData.Result);
 				}
 			}
 		}
