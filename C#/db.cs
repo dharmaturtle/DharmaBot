@@ -39,9 +39,6 @@ namespace IRCbot
     partial void InsertModCommands(ModCommands instance);
     partial void UpdateModCommands(ModCommands instance);
     partial void DeleteModCommands(ModCommands instance);
-    partial void InsertModCommands2(ModCommands2 instance);
-    partial void UpdateModCommands2(ModCommands2 instance);
-    partial void DeleteModCommands2(ModCommands2 instance);
     partial void InsertModVariables(ModVariables instance);
     partial void UpdateModVariables(ModVariables instance);
     partial void DeleteModVariables(ModVariables instance);
@@ -95,14 +92,6 @@ namespace IRCbot
 			get
 			{
 				return this.GetTable<ModCommands>();
-			}
-		}
-		
-		public System.Data.Linq.Table<ModCommands2> ModCommands2
-		{
-			get
-			{
-				return this.GetTable<ModCommands2>();
 			}
 		}
 		
@@ -259,6 +248,8 @@ namespace IRCbot
 		
 		private string _Action;
 		
+		private string _ActionParameter;
+		
 		private string _Result;
 		
 		private string _ResultParameter;
@@ -275,6 +266,8 @@ namespace IRCbot
     partial void OnCommandParameterChanged();
     partial void OnActionChanging(string value);
     partial void OnActionChanged();
+    partial void OnActionParameterChanging(string value);
+    partial void OnActionParameterChanged();
     partial void OnResultChanging(string value);
     partial void OnResultChanged();
     partial void OnResultParameterChanging(string value);
@@ -348,184 +341,22 @@ namespace IRCbot
 			}
 		}
 		
-		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_Result", DbType="NVarChar(100)")]
-		public string Result
+		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_ActionParameter", DbType="NVarChar(100)")]
+		public string ActionParameter
 		{
 			get
 			{
-				return this._Result;
+				return this._ActionParameter;
 			}
 			set
 			{
-				if ((this._Result != value))
+				if ((this._ActionParameter != value))
 				{
-					this.OnResultChanging(value);
+					this.OnActionParameterChanging(value);
 					this.SendPropertyChanging();
-					this._Result = value;
-					this.SendPropertyChanged("Result");
-					this.OnResultChanged();
-				}
-			}
-		}
-		
-		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_ResultParameter", DbType="NVarChar(100)")]
-		public string ResultParameter
-		{
-			get
-			{
-				return this._ResultParameter;
-			}
-			set
-			{
-				if ((this._ResultParameter != value))
-				{
-					this.OnResultParameterChanging(value);
-					this.SendPropertyChanging();
-					this._ResultParameter = value;
-					this.SendPropertyChanged("ResultParameter");
-					this.OnResultParameterChanged();
-				}
-			}
-		}
-		
-		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_PrimaryKey", AutoSync=AutoSync.OnInsert, DbType="Int NOT NULL IDENTITY", IsPrimaryKey=true, IsDbGenerated=true)]
-		public int PrimaryKey
-		{
-			get
-			{
-				return this._PrimaryKey;
-			}
-			set
-			{
-				if ((this._PrimaryKey != value))
-				{
-					this.OnPrimaryKeyChanging(value);
-					this.SendPropertyChanging();
-					this._PrimaryKey = value;
-					this.SendPropertyChanged("PrimaryKey");
-					this.OnPrimaryKeyChanged();
-				}
-			}
-		}
-		
-		public event PropertyChangingEventHandler PropertyChanging;
-		
-		public event PropertyChangedEventHandler PropertyChanged;
-		
-		protected virtual void SendPropertyChanging()
-		{
-			if ((this.PropertyChanging != null))
-			{
-				this.PropertyChanging(this, emptyChangingEventArgs);
-			}
-		}
-		
-		protected virtual void SendPropertyChanged(String propertyName)
-		{
-			if ((this.PropertyChanged != null))
-			{
-				this.PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
-			}
-		}
-	}
-	
-	[global::System.Data.Linq.Mapping.TableAttribute()]
-	public partial class ModCommands2 : INotifyPropertyChanging, INotifyPropertyChanged
-	{
-		
-		private static PropertyChangingEventArgs emptyChangingEventArgs = new PropertyChangingEventArgs(String.Empty);
-		
-		private string _Command;
-		
-		private string _CommandParameter;
-		
-		private string _Action;
-		
-		private string _Result;
-		
-		private string _ResultParameter;
-		
-		private int _PrimaryKey;
-		
-    #region Extensibility Method Definitions
-    partial void OnLoaded();
-    partial void OnValidate(System.Data.Linq.ChangeAction action);
-    partial void OnCreated();
-    partial void OnCommandChanging(string value);
-    partial void OnCommandChanged();
-    partial void OnCommandParameterChanging(string value);
-    partial void OnCommandParameterChanged();
-    partial void OnActionChanging(string value);
-    partial void OnActionChanged();
-    partial void OnResultChanging(string value);
-    partial void OnResultChanged();
-    partial void OnResultParameterChanging(string value);
-    partial void OnResultParameterChanged();
-    partial void OnPrimaryKeyChanging(int value);
-    partial void OnPrimaryKeyChanged();
-    #endregion
-		
-		public ModCommands2()
-		{
-			OnCreated();
-		}
-		
-		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_Command", DbType="NVarChar(100)")]
-		public string Command
-		{
-			get
-			{
-				return this._Command;
-			}
-			set
-			{
-				if ((this._Command != value))
-				{
-					this.OnCommandChanging(value);
-					this.SendPropertyChanging();
-					this._Command = value;
-					this.SendPropertyChanged("Command");
-					this.OnCommandChanged();
-				}
-			}
-		}
-		
-		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_CommandParameter", DbType="NVarChar(100)")]
-		public string CommandParameter
-		{
-			get
-			{
-				return this._CommandParameter;
-			}
-			set
-			{
-				if ((this._CommandParameter != value))
-				{
-					this.OnCommandParameterChanging(value);
-					this.SendPropertyChanging();
-					this._CommandParameter = value;
-					this.SendPropertyChanged("CommandParameter");
-					this.OnCommandParameterChanged();
-				}
-			}
-		}
-		
-		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_Action", DbType="NVarChar(100)")]
-		public string Action
-		{
-			get
-			{
-				return this._Action;
-			}
-			set
-			{
-				if ((this._Action != value))
-				{
-					this.OnActionChanging(value);
-					this.SendPropertyChanging();
-					this._Action = value;
-					this.SendPropertyChanged("Action");
-					this.OnActionChanged();
+					this._ActionParameter = value;
+					this.SendPropertyChanged("ActionParameter");
+					this.OnActionParameterChanged();
 				}
 			}
 		}
