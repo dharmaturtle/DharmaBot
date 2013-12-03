@@ -119,7 +119,8 @@ namespace IRCbot
 		}
 
 		/* global vars */
-		public static class MyGlobals {
+		public static class MyGlobals
+		{
 			public static TextReader Input { get; set; }
 			public static TextWriter Output { get; set; }
 			public static DateTime Pleblag { get; set; }
@@ -199,9 +200,9 @@ namespace IRCbot
 		/* human readable time deltas */
 		public static string DeltaTimeFormat(TimeSpan span, string rough = "")
 		{
-			int day = Convert.ToInt16(span.ToString("%d")),
-				hour = Convert.ToInt16(span.ToString("%h")),
-				minute = Convert.ToInt16(span.ToString("%m"));
+			int day		= Convert.ToInt16(span.ToString("%d")),
+				hour	= Convert.ToInt16(span.ToString("%h")),
+				minute	= Convert.ToInt16(span.ToString("%m"));
 
 			if (span.CompareTo(TimeSpan.Zero) == -1)
 			{
