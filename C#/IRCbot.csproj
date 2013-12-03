@@ -54,7 +54,7 @@
     <Compile Include="BanLogicClass.cs" />
     <Compile Include="db.cs" />
     <Compile Include="ModClass.cs" />
-    <Compile Include="Constants.cs" />
+    <Compile Include="PrivateConstants.cs" />
     <Compile Include="MainClass.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

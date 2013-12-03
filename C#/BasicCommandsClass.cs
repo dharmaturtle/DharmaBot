@@ -25,7 +25,7 @@ namespace IRCbot
 			else if (message.StartsWith("song"))
 			{
 				MyGlobals.Pleblag = DateTime.Now;
-				var data = DLdata("http://ws.audioscrobbler.com/2.0/?method=user.getRecentTracks&user=StevenBonnellII&format=json&api_key=" + Constants.LastFmKey);
+				var data = DLdata("http://ws.audioscrobbler.com/2.0/?method=user.getRecentTracks&user=StevenBonnellII&format=json&api_key=" + PrivateConstants.LastFmKey);
 				var serializer = new JavaScriptSerializer();
 				dynamic songjson = serializer.Deserialize<object>(data.Result);
 				string artist = songjson["recenttracks"]["track"][0]["artist"]["#text"], track = songjson["recenttracks"]["track"][0]["name"];
@@ -67,7 +67,8 @@ namespace IRCbot
 				var twitterjson = JArray.Parse(@twit.GetMyTimeline());
 				var tweet = (string) twitterjson.SelectToken("[0].text");
 				var timestamp = DateTime.ParseExact((string)twitterjson.SelectToken("[0].created_at"), "ddd MMM dd HH:mm:ss +0000 yyyy", new CultureInfo("en-US"), DateTimeStyles.None); //http://msdn.microsoft.com/en-us/library/8kb3ddd4(v=vs.110).aspx
-				var matches = MyGlobals.UnTinyUrl.Matches(tweet);
+				var untinyurl = new Regex(@"(http://t\.co/\w+)", RegexOptions.Compiled);
+				var matches = untinyurl.Matches(tweet);
 				foreach (Match match in matches)
 				{
 					//http://msdn.microsoft.com/en-us/library/system.text.regularexpressions.regexoptions(v=vs.110).aspx

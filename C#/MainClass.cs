@@ -16,11 +16,16 @@ namespace IRCbot
 		{
 			string received = null, sender, message, MESSAGE;
 			var parserawirc = new Regex(@":(.*)!.*(?:privmsg).*?:(.*)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-			// Loaded into memory because they're used frequently
-			MyGlobals.Banwords["AutoBanList"] = MyGlobals.DBcontext.AutoBanList.Select(e => e.Word).ToList();
-			MyGlobals.Banwords["AutoTempBanList"] = MyGlobals.DBcontext.AutoTempBanList.Select(e => e.Word).ToList();
-			MyGlobals.ModVariables = MyGlobals.DBcontext.ModVariables.Select(t => new { t.Variable, t.Value })//http://stackoverflow.com/questions/953919/convert-linq-query-result-to-dictionary
-				.ToDictionary(t => t.Variable, t => t.Value);
+			MyGlobals.IsBanned = false;
+			
+			
+			//frequently used  vars are loaded into memory for speed.) Loaded into memory because they're used frequently
+			MyGlobals.Banwords = new Dictionary<string, List<string>>();
+			MyGlobals.Banwords["AutoBanList"] = Constants.DBcontext.AutoBanList.Select(e => e.Word).ToList();
+			MyGlobals.Banwords["AutoTempBanList"] = Constants.DBcontext.AutoTempBanList.Select(e => e.Word).ToList();
+			MyGlobals.ModVariables = new Dictionary<string, string>();
+			MyGlobals.ModVariables = Constants.DBcontext.ModVariables.Select(t => new { t.Variable, t.Value })//http://stackoverflow.com/questions/953919/convert-linq-query-result-to-dictionary
+																	.ToDictionary(t => t.Variable, t => t.Value);
 
 			Connect();
 			ParallelWhile(delegate
@@ -42,24 +47,24 @@ namespace IRCbot
 					if (sendermessage.Success)
 					{
 						/* log latest lines */
-						var stalk =	(from y in MyGlobals.DBcontext.Stalk
+						var stalk = (from y in Constants.DBcontext.Stalk
 									where y.User == sender
 									select y).SingleOrDefault();
 						if (stalk == null)
 						{
 							stalk = new Stalk();
-							MyGlobals.DBcontext.Stalk.InsertOnSubmit(stalk);
+							Constants.DBcontext.Stalk.InsertOnSubmit(stalk);
 						}
 						stalk.User = sender;
 						stalk.Time = DateTime.Now;
 						stalk.Message = MESSAGE;
-						MyGlobals.DBcontext.SubmitChanges();
+						Constants.DBcontext.SubmitChanges();
 
 						/* print to console */
 						Log(sender + ": " + message, new[] {"dharm", "darm", "dhram"}.Any(received.Contains) ? ConsoleColor.Green : ConsoleColor.Gray);
 
 						/* mod */
-						if (Constants.Mods.Contains(sender))
+						if (PrivateConstants.Mods.Contains(sender))
 						{
 							// TODO: make sure you append longspamlist if over x lines
 							if (message[0] != '!') return;
@@ -71,7 +76,7 @@ namespace IRCbot
 						else
 						{
 							BanLogicClass.Parse(message);
-							if (((DateTime.Now - MyGlobals.Pleblag).TotalSeconds >= 15) && (MyGlobals.Isbanned == false) && (message[0] == '!'))
+							if (((DateTime.Now - MyGlobals.Pleblag).TotalSeconds >= 15) && (MyGlobals.IsBanned == false) && (message[0] == '!'))
 							{
 								BasicCommandsClass.Parse(message.Substring(1));
 							}
@@ -115,15 +120,22 @@ namespace IRCbot
 
 		/* global vars */
 		public static class MyGlobals {
-			public static TcpClient Sock = new TcpClient();
-			public static TextReader Input;
-			public static TextWriter Output;
-			public static DateTime Pleblag;
-			public static Boolean Isbanned = false;
-			public static Regex UnTinyUrl = new Regex(@"(http://t\.co/\w+)", RegexOptions.Compiled);
-			public static db DBcontext = new db(new SqlCeConnection("Data Source=|DataDirectory|IRCbotDB.sdf;Max Database Size=4091"));
-			public static Dictionary<string, string> ModVariables = new Dictionary<string, string>();
-			public static Dictionary<string, List<string>> Banwords = new Dictionary<string, List<string>>();
+			public static TextReader Input { get; set; }
+			public static TextWriter Output { get; set; }
+			public static DateTime Pleblag { get; set; }
+			public static Boolean IsBanned { get; set; }
+			public static Dictionary<string, string> ModVariables { get; set; }
+			public static Dictionary<string, List<string>> Banwords { get; set; }
+		}
+		
+		public static class Constants
+		{
+			public static readonly TcpClient Sock = new TcpClient();
+			public static readonly db DBcontext = new db(new SqlCeConnection("Data Source=|DataDirectory|IRCbotDB.sdf;Max Database Size=4091")); //http://dotnet.dzone.com/articles/sql-server-compact-4-desktop
+			public const string Nick	= "dharmaturtle",
+								Owner	= "dharmaturtle",
+								Server	= "irc.twitch.tv",
+								Chan	= "#dharmaturtle2";
 		}
 
 		/* sends to channel */
@@ -135,11 +147,10 @@ namespace IRCbot
 		/* get website data */
 		public static async Task<string> DLdata(string url)
 		{
-			//http://stackoverflow.com/questions/13240915/converting-a-webclient-method-to-async-await
-			try
+			try //http://stackoverflow.com/questions/13240915/converting-a-webclient-method-to-async-await
 			{
 				var client = new WebClient();
-				string data = await client.DownloadStringTaskAsync(url);
+				var data = await client.DownloadStringTaskAsync(url);
 				return data;
 			}
 			catch (Exception ex)
@@ -152,16 +163,16 @@ namespace IRCbot
 		/* connect to server */
 		public static void Connect()
 		{
-			MyGlobals.Sock.Connect("irc.twitch.tv", 6667);
-			if (!MyGlobals.Sock.Connected)
+			Constants.Sock.Connect("irc.twitch.tv", 6667);
+			if (!Constants.Sock.Connected)
 			{
 				Log("Failed to connect!", ConsoleColor.Red);
 				return;
 			}
-			MyGlobals.Input = new StreamReader(MyGlobals.Sock.GetStream());
-			MyGlobals.Output = new StreamWriter(MyGlobals.Sock.GetStream());
+			MyGlobals.Input = new StreamReader(Constants.Sock.GetStream());
+			MyGlobals.Output = new StreamWriter(Constants.Sock.GetStream());
 			WriteAndFlush(
-				"PASS " + Constants.Oauth + "\n" +
+				"PASS " + PrivateConstants.Oauth + "\n" +
 				"USER " + Constants.Nick + " 0 * :" + Constants.Owner + "\n" +
 				"NICK " + Constants.Nick + "\n" +
 				"JOIN " + Constants.Chan + "\n" // could wait for 001 from server, but this works anyway
@@ -225,8 +236,7 @@ namespace IRCbot
 				{
 					var request = (HttpWebRequest) WebRequest.Create(url);
 					request.AllowAutoRedirect = false;
-					request.UserAgent =
-						"Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.1.3) Gecko/20090824 Firefox/3.5.3 (.NET CLR 4.0.20506)";
+					request.UserAgent = "Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.1.3) Gecko/20090824 Firefox/3.5.3 (.NET CLR 4.0.20506)";
 					var response = (HttpWebResponse) request.GetResponse();
 					if ((int) response.StatusCode == 301 || (int) response.StatusCode == 302)
 					{

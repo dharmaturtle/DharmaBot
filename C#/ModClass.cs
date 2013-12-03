@@ -9,7 +9,7 @@ namespace IRCbot
 	{
 		public static void Parse(string message)
 		{
-			var dbcontext = MyGlobals.DBcontext;
+			var dbcontext = Constants.DBcontext;
 			var userParameter = Regex.Match(message, @"(\w*) +(\w.*)").Groups[2].Value.Trim();// gets the optional word after the !command
 			
 
