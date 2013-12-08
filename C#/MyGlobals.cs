@@ -10,12 +10,12 @@
 
 		public static TextWriter Output { get; set; }
 
-		public static DateTime Pleblag { get; set; }
+		public static DateTime PlebianLag { get; set; }
 
 		public static bool IsBanned { get; set; }
 
 		public static Dictionary<string, string> ModVariables { get; set; }
 
-		public static Dictionary<string, List<string>> Banwords { get; set; }
+		public static Dictionary<string, List<string>> BanWords { get; set; }
 	}
 }

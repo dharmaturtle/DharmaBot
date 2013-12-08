@@ -12,21 +12,21 @@
 		public static void Parse(string message)
 		{
 			/* live */
-			if (message.StartsWith("live"))
+			if (message.StartsWith("live", StringComparison.CurrentCulture))
 			{
-				MyGlobals.Pleblag = DateTime.Now;
-				var data = DLdata("https://api.twitch.tv/kraken/streams/destiny");
+				MyGlobals.PlebianLag = DateTime.Now;
+				var data = DownloadData("https://api.twitch.tv/kraken/streams/destiny");
 				var serializer = new JavaScriptSerializer();
 				dynamic livejson = serializer.Deserialize<object>(data.Result);
-				if (livejson["stream"] != null) Sendmessage("Stream is live with " + livejson["stream"]["viewers"] + " viewers");
-				else Sendmessage("Offline.");
+				if (livejson["stream"] != null) SendMessage("Stream is live with " + livejson["stream"]["viewers"] + " viewers");
+				else SendMessage("Offline.");
 			}
 
 			/* song */
-			else if (message.StartsWith("song"))
+			else if (message.StartsWith("song", StringComparison.CurrentCulture))
 			{
-				MyGlobals.Pleblag = DateTime.Now;
-				var data = DLdata("http://ws.audioscrobbler.com/2.0/?method=user.getRecentTracks&user=StevenBonnellII&format=json&api_key=" + PrivateConstants.LastFmKey);
+				MyGlobals.PlebianLag = DateTime.Now;
+				var data = DownloadData("http://ws.audioscrobbler.com/2.0/?method=user.getRecentTracks&user=StevenBonnellII&format=json&api_key=" + PrivateConstants.LastFmKey);
 				var serializer = new JavaScriptSerializer();
 				dynamic songjson = serializer.Deserialize<object>(data.Result);
 				string artist = songjson["recenttracks"]["track"][0]["artist"]["#text"],
@@ -38,36 +38,36 @@
 						"d MMM yyyy, HH:mm",
 						new CultureInfo("en-US"),
 						DateTimeStyles.None); // http://msdn.microsoft.com/en-us/library/8kb3ddd4(v=vs.110).aspx
-					Sendmessage("No song played/scrobbled. Played " + DeltaTimeFormat(DateTime.UtcNow - timestamp) + " ago: " + track + " - " + artist);
+					SendMessage("No song played/scrobbled. Played " + DeltaTimeFormat(DateTime.UtcNow - timestamp) + " ago: " + track + " - " + artist);
 				}
 				else
 				{
-					Sendmessage(track + " - " + artist);
+					SendMessage(track + " - " + artist);
 				}
 			}
 
 			/* starcraft */
-			else if (message.StartsWith("sc") || message.StartsWith("starcraft"))
+			else if (message.StartsWith("sc", StringComparison.CurrentCulture) || message.StartsWith("starcraft", StringComparison.CurrentCulture))
 			{
-				MyGlobals.Pleblag = DateTime.Now;
-				var data = DLdata("http://us.battle.net/api/sc2/profile/310150/1/Destiny/matches");
+				MyGlobals.PlebianLag = DateTime.Now;
+				var data = DownloadData("http://us.battle.net/api/sc2/profile/310150/1/Destiny/matches");
 				var serializer = new JavaScriptSerializer();
 				dynamic json = serializer.Deserialize<object>(data.Result);
 				string decision = json["matches"][0]["decision"];
 				var gametime = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddSeconds(json["matches"][0]["date"]); // API gives back epoch time
 				string mainstring = json["matches"][0]["type"].ToLower() + " game on " + json["matches"][0]["map"] + " " + DeltaTimeFormat(DateTime.UtcNow - gametime) + " ago";
 				if (decision == "WIN")
-					Sendmessage("Destiny won a " + mainstring);
+					SendMessage("Destiny won a " + mainstring);
 				else if (json["matches"][0]["decision"] == "LOSS")
-					Sendmessage("Destiny lost a " + mainstring);
+					SendMessage("Destiny lost a " + mainstring);
 				else
-					Sendmessage("Destiny played a " + mainstring);
+					SendMessage("Destiny played a " + mainstring);
 			}
 
 			/* twitter */
-			else if (message.StartsWith("twitter") || message.StartsWith("tweet"))
+			else if (message.StartsWith("twitter", StringComparison.CurrentCulture) || message.StartsWith("tweet", StringComparison.CurrentCulture))
 			{
-				MyGlobals.Pleblag = DateTime.Now;
+				MyGlobals.PlebianLag = DateTime.Now;
 				var twit = new OAuthTwitterWrapper.OAuthTwitterWrapper();
 				var twitterjson = JArray.Parse(@twit.GetMyTimeline());
 				var tweet = (string)twitterjson.SelectToken("[0].text");
@@ -82,49 +82,49 @@
 					/* will try to untiny each http://t.co 3x, individually */
 				}
 
-				Sendmessage(DeltaTimeFormat(DateTime.UtcNow - timestamp) + " ago: " + tweet);
+				SendMessage(DeltaTimeFormat(DateTime.UtcNow - timestamp) + " ago: " + tweet);
 			}
 
 			/* bancount */
-			else if (message.StartsWith("bancount"))
+			else if (message.StartsWith("bancount", StringComparison.CurrentCulture))
 			{
-				MyGlobals.Pleblag = DateTime.Now;
-				Sendmessage(MyGlobals.ModVariables["bancount"] + " victims reaped.");
+				MyGlobals.PlebianLag = DateTime.Now;
+				SendMessage(MyGlobals.ModVariables["bancount"] + " victims reaped.");
 			}
 
 			/* time */
-			else if (message.StartsWith("time"))
+			else if (message.StartsWith("time", StringComparison.CurrentCulture))
 			{
-				MyGlobals.Pleblag = DateTime.Now;
-				Sendmessage(DateTime.Now.ToShortTimeString() + " Central Steven Time");
+				MyGlobals.PlebianLag = DateTime.Now;
+				SendMessage(DateTime.Now.ToShortTimeString() + " Central Steven Time");
 			}
 
 			/* rules */
-			else if (message.StartsWith("rules"))
+			else if (message.StartsWith("rules", StringComparison.CurrentCulture))
 			{
-				MyGlobals.Pleblag = DateTime.Now;
-				Sendmessage("Rules: reddit.com/1aufkc");
+				MyGlobals.PlebianLag = DateTime.Now;
+				SendMessage("Rules: reddit.com/1aufkc");
 			}
 
 			/* playlist */
-			else if (message.StartsWith("playlist"))
+			else if (message.StartsWith("playlist", StringComparison.CurrentCulture))
 			{
-				MyGlobals.Pleblag = DateTime.Now;
-				Sendmessage("Playlist at last.fm/user/StevenBonnellII");
+				MyGlobals.PlebianLag = DateTime.Now;
+				SendMessage("Playlist at last.fm/user/StevenBonnellII");
 			}
 
 			/* referral links */
-			else if (message.StartsWith("refer"))
+			else if (message.StartsWith("refer", StringComparison.CurrentCulture))
 			{
-				MyGlobals.Pleblag = DateTime.Now;
-				Sendmessage("amazon.com/?tag=des000-20 ☜(ﾟヮﾟ☜) Amazon referral, buy anything within 24hrs ☜(⌒▽⌒)☞ 25$ off cellphone, runs on Sprint (☞ﾟヮﾟ)☞ z78nhc1gsa3.ting.com/");
+				MyGlobals.PlebianLag = DateTime.Now;
+				SendMessage("amazon.com/?tag=des000-20 ☜(ﾟヮﾟ☜) Amazon referral, buy anything within 24hrs ☜(⌒▽⌒)☞ 25$ off cellphone, runs on Sprint (☞ﾟヮﾟ)☞ z78nhc1gsa3.ting.com/");
 			}
 
 			/* sponsors */
-			else if (message.StartsWith("sponsor"))
+			else if (message.StartsWith("sponsor", StringComparison.CurrentCulture))
 			{
-				MyGlobals.Pleblag = DateTime.Now;
-				Sendmessage("feenixcollection.com ༼ ◔◡◔༽ dollar-shave-club.7eer.net/c/72409/74122/1969");
+				MyGlobals.PlebianLag = DateTime.Now;
+				SendMessage("feenixcollection.com ༼ ◔◡◔༽ dollar-shave-club.7eer.net/c/72409/74122/1969");
 			}
 		}
 	}

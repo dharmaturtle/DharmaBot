@@ -5,100 +5,33 @@
 	using System.IO;
 	using System.Linq;
 	using System.Net;
-	using System.Text.RegularExpressions;
 	using System.Threading.Tasks;
+	using System.Threading.Tasks.Dataflow;
 	
 	public class MainClass
 	{
 		public static void Main()
 		{
-			string received = null, sender, message, messageCaps;
-			var parserawirc = new Regex(@":(.*)!.*(?:privmsg).*?:(.*)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-						
-			// frequently used  vars are loaded into memory for speed.) Loaded into memory because they're used frequently
-			MyGlobals.Banwords = new Dictionary<string, List<string>>();
-			MyGlobals.Banwords["AutoBanList"] = Constants.DBcontext.AutoBanList.Select(e => e.Word).ToList();
-			MyGlobals.Banwords["AutoTempBanList"] = Constants.DBcontext.AutoTempBanList.Select(e => e.Word).ToList();
+			// loaded into memory due to frequency of use
+			MyGlobals.BanWords = new Dictionary<string, List<string>>();
+			MyGlobals.BanWords["AutoBanList"] = Constants.DBContext.AutoBanList.Select(e => e.Word).ToList();
+			MyGlobals.BanWords["AutoTempBanList"] = Constants.DBContext.AutoTempBanList.Select(e => e.Word).ToList();
 			MyGlobals.ModVariables = new Dictionary<string, string>();
-			MyGlobals.ModVariables = Constants.DBcontext.ModVariables.Select(t => new { t.Variable, t.Value }) // http://stackoverflow.com/questions/953919/convert-linq-query-result-to-dictionary
+			MyGlobals.ModVariables = Constants.DBContext.ModVariables.Select(t => new { t.Variable, t.Value }) // http://stackoverflow.com/questions/953919/convert-linq-query-result-to-dictionary
 																		.ToDictionary(t => t.Variable, t => t.Value);
-
 			Connect();
-			ParallelWhile(delegate
+			var async = new AsyncClass();
+			var abuffer =
+				new BufferBlock<string>(new ExecutionDataflowBlockOptions { MaxDegreeOfParallelism = DataflowBlockOptions.Unbounded });
+			
+			// start consumer
+			async.Consumer(abuffer);
+			
+			// infinite producer
+			while (true)
 			{
-				try
-				{
-					var readLine = MyGlobals.Input.ReadLine();
-					if (readLine != null) received = readLine.Trim(new[] { '\r', '\n', ' ' });
-
-					/* disconnected */
-					if (received != null && received.Length == 0) Connect();
-
-					/* get user & privmsg */
-					if (received == null) return;
-					var sendermessage = parserawirc.Match(received);
-					sender = sendermessage.Groups[1].Value;
-					messageCaps = sendermessage.Groups[2].Value;
-					message = messageCaps.ToLowerInvariant();
-					if (sendermessage.Success)
-					{
-						/* print to console */
-						Log(sender + ": " + message, new[] { "dharm", "darm", "dhram" }.Any(received.Contains) ? ConsoleColor.Green : ConsoleColor.Gray);
-
-						/* mod */
-						if (PrivateConstants.Mods.Contains(sender))
-						{
-							// TODO: make sure you append longspamlist if over x lines
-							if (message[0] != '!') return;
-							ModClass.Parse(message.Substring(1));
-							BasicCommandsClass.Parse(message.Substring(1));
-						}
-						
-						/* pleb */
-						else
-						{
-							MyGlobals.IsBanned = false;
-							BanLogicClass.Parse(message);
-							if (((DateTime.Now - MyGlobals.Pleblag).TotalSeconds >= 15) && (MyGlobals.IsBanned == false) && (message[0] == '!'))
-							{
-								BasicCommandsClass.Parse(message.Substring(1));
-							}
-						}
-
-						/* log latest lines */
-						var stalk = (from y in Constants.DBcontext.Stalk
-									 where y.User == sender
-									 select y).SingleOrDefault();
-						if (stalk == null)
-						{
-							stalk = new Stalk();
-							Constants.DBcontext.Stalk.InsertOnSubmit(stalk);
-						}
-
-						stalk.User = sender;
-						stalk.Time = DateTime.Now;
-						stalk.Message = messageCaps;
-						Constants.DBcontext.SubmitChanges();
-					}
-					
-					/* pongs */
-					else if (received.StartsWith("PING "))
-					{
-						WriteAndFlush(received.Replace("PING", "PONG") + "\n");
-						Log(received, ConsoleColor.DarkGray);
-					}
-					
-					/* print server text */
-					else Log(received, ConsoleColor.DarkGray);
-				}
-				catch (Exception e)
-				{
-					Log("An error occured!", ConsoleColor.Red);
-					Log(e.Message, ConsoleColor.Red);
-					Log(e.Source, ConsoleColor.Red);
-					Log(e.StackTrace, ConsoleColor.Red);
-				}
-			});
+				abuffer.Post(MyGlobals.Input.ReadLine());
+			}
 		}
 
 		/****************************************************************************************************
@@ -106,13 +39,13 @@
 		 ****************************************************************************************************/
 
 		/* sends to channel */
-		public static void Sendmessage(string msg)
+		public static void SendMessage(string msg)
 		{
 			WriteAndFlush("PRIVMSG " + Constants.Chan + " :" + msg + "\n");
 		}
 
 		/* get website data */
-		public static async Task<string> DLdata(string url)
+		public static async Task<string> DownloadData(string url)
 		{
 			try // http://stackoverflow.com/questions/13240915/converting-a-webclient-method-to-async-await
 			{
@@ -120,10 +53,13 @@
 				var data = await client.DownloadStringTaskAsync(url);
 				return data;
 			}
-			catch (Exception ex)
+			catch (Exception e)
 			{
-				Console.WriteLine(ex);
-				return "Error! " + ex;
+				Log("An error in DownloadData!", ConsoleColor.Red);
+				Log(e.Message, ConsoleColor.Red);
+				Log(e.Source, ConsoleColor.Red);
+				Log(e.StackTrace, ConsoleColor.Red);
+				return "Error! " + e;
 			}
 		}
 
@@ -147,9 +83,9 @@
 		}
 
 		/* Why write two lines when you can write one */
-		public static void WriteAndFlush(string str)
+		public static void WriteAndFlush(string data)
 		{
-			MyGlobals.Output.Write(str);
+			MyGlobals.Output.Write(data);
 			MyGlobals.Output.Flush();
 		}
 
@@ -166,9 +102,9 @@
 		/* human readable time deltas */
 		public static string DeltaTimeFormat(TimeSpan span, string rough = "")
 		{
-			int day		= Convert.ToInt16(span.ToString("%d")),
-				hour	= Convert.ToInt16(span.ToString("%h")),
-				minute	= Convert.ToInt16(span.ToString("%m"));
+			int day = Convert.ToInt16(span.ToString("%d")),
+				hour = Convert.ToInt16(span.ToString("%h")),
+				minute = Convert.ToInt16(span.ToString("%m"));
 
 			if (span.CompareTo(TimeSpan.Zero) == -1)
 			{
@@ -178,33 +114,33 @@
 
 			if (day > 1)
 			{
-				if (hour == 0)	return day + " days";
+				if (hour == 0) return day + " days";
 				return day + " days " + hour + "h";
 			}
 
 			if (day == 1)
 			{
-				if (hour == 0)	return "a day";
+				if (hour == 0) return "a day";
 				return "a day " + hour + "h";
 			}
 
-			if (hour == 0)		return rough + minute + "m";
-			if (minute == 0)	return rough + hour + "h";
+			if (hour == 0) return rough + minute + "m";
+			if (minute == 0) return rough + hour + "h";
 
 			return rough + hour + "h " + minute + "m";
 		}
 
 		/* url unshorteners */
-		public static string UnTinyUrl(string url)
+		public static string UnTinyUrl(string link)
 		{
-			var redirectedto = url; // http://stackoverflow.com/questions/3175062/long-urls-from-short-ones-using-c-sharp
+			var redirectedto = link; // http://stackoverflow.com/questions/3175062/long-urls-from-short-ones-using-c-sharp
 			var cycle = 3;
 			while (cycle > 0)
 			{
 				// gives it 3 tries to untiny the URL before giving up
 				try
 				{
-					var request = (HttpWebRequest)WebRequest.Create(url);
+					var request = (HttpWebRequest)WebRequest.Create(link);
 					request.AllowAutoRedirect = false;
 					request.UserAgent = "Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.1.3) Gecko/20090824 Firefox/3.5.3 (.NET CLR 4.0.20506)";
 					var response = (HttpWebResponse)request.GetResponse();
@@ -216,31 +152,19 @@
 					}
 					else
 					{
-						Console.WriteLine(response.Headers["Location"]);
-						Log("Not redirecting " + url + " because " + response.StatusCode);
+						Log("Not redirecting " + link + " because " + response.StatusCode);
 						cycle--;
 					}
 				}
 				catch (Exception ex)
 				{
-					ex.Data.Add("url", url);
+					ex.Data.Add("url", link);
 					Log(ex.ToString());
 					cycle--;
 				}
 			}
 
 			return redirectedto;
-		}
-
-		/* Parallel while loop */
-		public static void ParallelWhile(Action body)
-		{
-			Parallel.ForEach(ForeverTrue(), ignored => body());
-		}
-
-		private static IEnumerable<bool> ForeverTrue()
-		{
-			while (true) yield return true;
 		}
 	}
 }
