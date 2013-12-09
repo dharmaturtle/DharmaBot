@@ -3,6 +3,7 @@
 	using System;
 	using System.Collections.Generic;
 	using System.Data.SqlServerCe;
+	using System.Diagnostics;
 	using System.IO;
 	using System.Linq;
 	using System.Net;
@@ -112,6 +113,8 @@
 		// colors console and prepends timestamp
 		public static void Log(string text, ConsoleColor color = ConsoleColor.White)
 		{
+			Console.ForegroundColor = ConsoleColor.Cyan;
+			Console.Write(Process.GetCurrentProcess().Threads.Count + " ");
 			Console.ForegroundColor = ConsoleColor.DarkCyan;
 			Console.Write(DateTime.Now.ToString("t"));
 			Console.ForegroundColor = color;
