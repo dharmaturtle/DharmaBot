@@ -1,6 +1,7 @@
 ﻿namespace IRCbot
 {
 	using System.Data.SqlServerCe;
+	using System.Text.RegularExpressions;
 	using System.Threading.Tasks.Dataflow;
 
 	public class Constants
@@ -10,6 +11,12 @@
 							Server = "irc.twitch.tv",
 							Chan = "#dharmaturtle2";
 
+		// Compiled, so initialize it once
+		public static readonly Regex ParseRawIRC = new Regex(
+				@":(.*)!.*(?:privmsg).*?:(.*)",
+				RegexOptions.IgnoreCase | RegexOptions.Compiled);
+		
+		// Sequential, so we don't need to connect on every call
 		public static readonly db DBLogContext = new db(
 			new SqlCeConnection(
 				"Data Source=|DataDirectory|IRCbotDB.sdf;Max Database Size=4091")); 

@@ -2,7 +2,6 @@
 {
 	using System;
 	using System.Linq;
-	using System.Text.RegularExpressions;
 	using System.Threading.Tasks.Dataflow;
 
 	// http://blog.stephencleary.com/2012/11/async-producerconsumer-queue-using.html
@@ -20,9 +19,6 @@
 		public void ParseRawIRC(string readLine)
 		{
 			string received = null;
-			var parseRawIRC = new Regex(
-				@":(.*)!.*(?:privmsg).*?:(.*)",
-				RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
 			if (readLine != null) received = readLine.Trim(new[] { '\r', '\n', ' ' });
 
@@ -31,12 +27,13 @@
 
 			// get user & privmsg
 			if (received == null) return;
-			var sendermessage = parseRawIRC.Match(received);
-			var sender = sendermessage.Groups[1].Value;
-			var messageCaps = sendermessage.Groups[2].Value;
-			var message = messageCaps.ToLowerInvariant();
+			var sendermessage = Constants.ParseRawIRC.Match(received);
 			if (sendermessage.Success)
 			{
+				var sender = sendermessage.Groups[1].Value;
+				var messageCaps = sendermessage.Groups[2].Value;
+				var message = messageCaps.ToLowerInvariant();
+				
 				// logs chat (synchronously!)
 				Constants.LogBuffer.Post(
 					new Log
