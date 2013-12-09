@@ -256,6 +256,8 @@ namespace IRCbot
 		
 		private int _PrimaryKey;
 		
+		private string _UserParameter;
+		
     #region Extensibility Method Definitions
     partial void OnLoaded();
     partial void OnValidate(System.Data.Linq.ChangeAction action);
@@ -274,6 +276,8 @@ namespace IRCbot
     partial void OnResultParameterChanged();
     partial void OnPrimaryKeyChanging(int value);
     partial void OnPrimaryKeyChanged();
+    partial void OnUserParameterChanging(string value);
+    partial void OnUserParameterChanged();
     #endregion
 		
 		public ModCommands()
@@ -417,6 +421,26 @@ namespace IRCbot
 					this._PrimaryKey = value;
 					this.SendPropertyChanged("PrimaryKey");
 					this.OnPrimaryKeyChanged();
+				}
+			}
+		}
+		
+		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_UserParameter", DbType="NVarChar(100)")]
+		public string UserParameter
+		{
+			get
+			{
+				return this._UserParameter;
+			}
+			set
+			{
+				if ((this._UserParameter != value))
+				{
+					this.OnUserParameterChanging(value);
+					this.SendPropertyChanging();
+					this._UserParameter = value;
+					this.SendPropertyChanged("UserParameter");
+					this.OnUserParameterChanged();
 				}
 			}
 		}

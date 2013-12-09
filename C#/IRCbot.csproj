@@ -85,10 +85,13 @@
   <ItemGroup>
     <Compile Include="BasicCommandsClass.cs" />
     <Compile Include="BanLogicClass.cs" />
-    <Compile Include="AsyncClass.cs" />
+    <Compile Include="RawIRCAsync.cs" />
+    <Compile Include="db.cs" />
+    <Compile Include="Log.cs" />
+    <Compile Include="LogSync.cs" />
+    <Compile Include="ModAsync.cs" />
     <Compile Include="MyGlobals.cs" />
     <Compile Include="Constants.cs" />
-    <Compile Include="db.cs" />
     <Compile Include="ModClass.cs" />
     <Compile Include="PrivateConstants.cs" />
     <Compile Include="MainClass.cs">

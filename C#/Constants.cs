@@ -1,8 +1,7 @@
 ﻿namespace IRCbot
 {
 	using System.Data.SqlServerCe;
-	using System.Net.Sockets;
-	using System.Text.RegularExpressions;
+	using System.Threading.Tasks.Dataflow;
 
 	public class Constants
 	{
@@ -11,14 +10,14 @@
 							Server = "irc.twitch.tv",
 							Chan = "#dharmaturtle2";
 
-		public static readonly TcpClient Sock = new TcpClient();
-
-		public static readonly db DBContext = new db(
+		public static readonly db DBLogContext = new db(
 			new SqlCeConnection(
-				"Data Source=|DataDirectory|IRCbotDB.sdf;Max Database Size=4091")); // http://dotnet.dzone.com/articles/sql-server-compact-4-desktop
+				"Data Source=|DataDirectory|IRCbotDB.sdf;Max Database Size=4091")); 
 
-		public static readonly Regex Parserawirc = new Regex(
-			@":(.*)!.*(?:privmsg).*?:(.*)",
-			RegexOptions.IgnoreCase | RegexOptions.Compiled);
+		public static readonly BufferBlock<ModCommands> ModBuffer =
+			new BufferBlock<ModCommands>(new ExecutionDataflowBlockOptions { MaxDegreeOfParallelism = DataflowBlockOptions.Unbounded });
+
+		public static readonly BufferBlock<Log> LogBuffer =
+			new BufferBlock<Log>(new ExecutionDataflowBlockOptions { MaxDegreeOfParallelism = 1 });
 	}
 }
