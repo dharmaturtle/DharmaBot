@@ -12,8 +12,6 @@
 
 		public static DateTime PlebianLag { get; set; }
 
-		public static bool IsBanned { get; set; }
-
 		public static Dictionary<string, string> ModVariables { get; set; }
 
 		public static Dictionary<string, List<string>> BanWords { get; set; }

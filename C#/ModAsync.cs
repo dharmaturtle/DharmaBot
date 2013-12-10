@@ -31,19 +31,18 @@
 				switch (x.Action)
 				{
 					case "set":
-						var modVariable = (from y in dbModContext.ModVariables where y.Variable == x.Result select y).First();
+						var modVariable = dbModContext.ModVariables.First(y => y.Variable == x.Result);
 						modVariable.Value = x.ResultParameter;
 						MyGlobals.ModVariables[x.Result] = x.ResultParameter;
 						dbModContext.SubmitChanges();
 						break;
 
 					case "stalk":
-						var stalk = (from y in dbModContext.Stalk where y.User == userParameter select y).FirstOrDefault();
+						var stalk = dbModContext.Stalk.FirstOrDefault(y => y.User == userParameter);
 
 						// checks if user can be found in table
 						if (stalk != null)
 						{
-							Debug.Assert(stalk.Time != null, "stalk.Time != null");
 							var deltatime = DeltaTimeFormat(DateTime.Now - (DateTime)stalk.Time);
 							SendMessage(stalk.User + " seen " + deltatime + " ago saying " + stalk.Message);
 						}

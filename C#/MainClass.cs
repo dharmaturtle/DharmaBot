@@ -3,7 +3,6 @@
 	using System;
 	using System.Collections.Generic;
 	using System.Data.SqlServerCe;
-	using System.Diagnostics;
 	using System.IO;
 	using System.Linq;
 	using System.Net;
@@ -26,17 +25,21 @@
 				MyGlobals.ModVariables = dbContext.ModVariables.Select(t => new { t.Variable, t.Value }) // http://stackoverflow.com/questions/953919/convert-linq-query-result-to-dictionary
 																			.ToDictionary(t => t.Variable, t => t.Value);
 				Connect();
+				
 				var modAsync = new ModAsync();
 				var logSync = new LogSync();
 				var rawIRCAsync = new RawIRCAsync();
+				var consoleSync = new ConsoleSync();
+				
 				var rawIRCBuffer =
 					new BufferBlock<string>(new ExecutionDataflowBlockOptions { MaxDegreeOfParallelism = DataflowBlockOptions.Unbounded });
 			
 				// start consumers
 				rawIRCAsync.Consumer(rawIRCBuffer);
-				logSync.Consumer(Constants.LogBuffer);
 				modAsync.Consumer(Constants.ModBuffer);
-			
+				logSync.Consumer(Constants.LogBuffer);
+				consoleSync.Consumer(Constants.ConsoleBuffer);
+				
 				// infinite raw producer
 				while (true)
 				{
@@ -113,13 +116,8 @@
 		// colors console and prepends timestamp
 		public static void Log(string text, ConsoleColor color = ConsoleColor.White)
 		{
-			Console.ForegroundColor = ConsoleColor.Cyan;
-			Console.Write(Process.GetCurrentProcess().Threads.Count + " ");
-			Console.ForegroundColor = ConsoleColor.DarkCyan;
-			Console.Write(DateTime.Now.ToString("t"));
-			Console.ForegroundColor = color;
-			Console.WriteLine(" " + text);
-			Console.ResetColor();
+			Constants.ConsoleBuffer.Post(
+				new Tuple<string, ConsoleColor>(text, color));
 		}
 
 		// human readable time deltas

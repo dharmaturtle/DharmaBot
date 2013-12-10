@@ -9,39 +9,34 @@
 
 namespace IRCbot
 {
+	using System;
 	using System.Linq;
 	using System.Threading.Tasks.Dataflow;
 
 	public class LogSync : MainClass
 	{
-		public void Consumer(ISourceBlock<Log> source)
+		public void Consumer(ISourceBlock<Tuple<string, string, DateTime>> source)
 		{
-			var ablock = new ActionBlock<Log>(
+			var ablock = new ActionBlock<Tuple<string, string, DateTime>>(
 				data => this.LogChat(data), new ExecutionDataflowBlockOptions { MaxDegreeOfParallelism = 1 }); // sync!
 
 			source.LinkTo(ablock);
 		}
 
-		public void LogChat(Log logObject)
+		public void LogChat(Tuple<string, string, DateTime> data)
 		{
-			var sender = logObject.User;
+			var sender = data.Item1;
 
 			// Search for user
-			var stalk = (from y in Constants.DBLogContext.Stalk
-						 where y.User == sender
-						 select y).SingleOrDefault();
+			var stalk = Constants.DBLogContext.Stalk.SingleOrDefault(x => x.User == sender);
 
 			// If user doesn't exist, make new
-			if (stalk == null)
-			{
-				stalk = new Stalk();
-				Constants.DBLogContext.Stalk.InsertOnSubmit(stalk);
-			}
-
+			if (stalk == null) Constants.DBLogContext.Stalk.InsertOnSubmit(new Stalk());
+			
 			// Update & save
 			stalk.User = sender;
-			stalk.Time = logObject.Timestamp;
-			stalk.Message = logObject.Message;
+			stalk.Time = data.Item3;
+			stalk.Message = data.Item2;
 			Constants.DBLogContext.SubmitChanges();
 		}
 	}

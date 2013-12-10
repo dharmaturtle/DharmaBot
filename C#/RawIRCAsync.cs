@@ -16,17 +16,18 @@
 			source.LinkTo(ablock);
 		}
 
-		public void ParseRawIRC(string readLine)
+		public void ParseRawIRC(string received)
 		{
-			string received = null;
-
-			if (readLine != null) received = readLine.Trim(new[] { '\r', '\n', ' ' });
+			received = received.Trim(new[] { '\r', '\n', ' ' });
 
 			// disconnected
-			if (received != null && received.Length == 0) Connect();
+			if (received.Length == 0)
+			{
+				Connect();
+				return;
+			}
 
 			// get user & privmsg
-			if (received == null) return;
 			var sendermessage = Constants.ParseRawIRC.Match(received);
 			if (sendermessage.Success)
 			{
@@ -36,14 +37,9 @@
 				
 				// logs chat (synchronously!)
 				Constants.LogBuffer.Post(
-					new Log
-						{
-							User = sender, 
-							Message = messageCaps, 
-							Timestamp = DateTime.Now
-						});
+					new Tuple<string, string, DateTime>(sender, messageCaps, DateTime.Now));
 					
-				// print to console
+				// people talking to/about me is green; otherwise gray
 				Log(sender + ": " + message, new[] { "dharm", "darm", "dhram" }.Any(received.Contains) ? ConsoleColor.Green : ConsoleColor.Gray);
 
 				// mod
@@ -56,26 +52,19 @@
 				}
 
 				// pleb
-				else
-				{
-					MyGlobals.IsBanned = false;
-					BanLogicClass.Parse(message);
-					if (((DateTime.Now - MyGlobals.PlebianLag).TotalSeconds >= 15) && (MyGlobals.IsBanned == false) && (message[0] == '!'))
-					{
-						BasicCommandsClass.Parse(message.Substring(1));
-					}
-				}
+				else if ((BanLogicClass.Parse(message) == false) &&
+						(message[0] == '!') &&
+						((DateTime.Now - MyGlobals.PlebianLag).TotalSeconds >= 15))
+							BasicCommandsClass.Parse(message.Substring(1));
 			}
-
-			// pongs
-			else if (received.StartsWith("PING ", StringComparison.CurrentCulture))
+			else 
 			{
-				WriteAndFlush(received.Replace("PING", "PONG") + "\n");
+				// pongs
+				if (received.StartsWith("PING ")) WriteAndFlush(received.Replace("PING", "PONG") + "\n");
+				
+				// print all server text
 				Log(received, ConsoleColor.DarkGray);
 			}
-
-			// print server text
-			else Log(received, ConsoleColor.DarkGray);
 		}
 	}
 }

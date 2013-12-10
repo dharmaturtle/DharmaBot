@@ -25,9 +25,7 @@
 			var dbPrimaryModContext = new db(new SqlCeConnection("Data Source=|DataDirectory|IRCbotDB.sdf;Max Database Size=4091"));
 			var userParameter = Regex.Match(message, @"(\w*) +(\w.*)").Groups[2].Value.Trim(); // gets the optional word after the !command
 
-			var primaryQuery = from x in dbPrimaryModContext.ModCommands
-								where x.Command == message.Split(' ')[0]
-								select x;
+			var primaryQuery = dbPrimaryModContext.ModCommands.Where(x => x.Command == message.Split(' ')[0]);
 
 			// lazily grabs first result - although all results of primaryQuery are used in primary loop, first assigned here b/c used in narrowing the selection
 			var primaryQueryResult = primaryQuery.FirstOrDefault();
