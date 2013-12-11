@@ -11,21 +11,21 @@
 	{
 		public static void Parse(string message)
 		{
-			/* live */
+			// live
 			if (message.StartsWith("live", StringComparison.CurrentCulture))
 			{
-				MyGlobals.PlebianLag = DateTime.Now;
 				var data = DownloadData("https://api.twitch.tv/kraken/streams/destiny");
 				var serializer = new JavaScriptSerializer();
 				dynamic livejson = serializer.Deserialize<object>(data.Result);
-				if (livejson["stream"] != null) SendMessage("Stream is live with " + livejson["stream"]["viewers"] + " viewers");
-				else SendMessage("Offline.");
+				if (livejson["stream"] != null)
+					SendMessage("Stream is live with " + livejson["stream"]["viewers"] + " viewers");
+				else
+					SendMessage("Offline.");
 			}
 
-			/* song */
+			// song
 			else if (message.StartsWith("song", StringComparison.CurrentCulture))
 			{
-				MyGlobals.PlebianLag = DateTime.Now;
 				var data = DownloadData("http://ws.audioscrobbler.com/2.0/?method=user.getRecentTracks&user=StevenBonnellII&format=json&api_key=" + PrivateConstants.LastFmKey);
 				var serializer = new JavaScriptSerializer();
 				dynamic songjson = serializer.Deserialize<object>(data.Result);
@@ -41,15 +41,12 @@
 					SendMessage("No song played/scrobbled. Played " + DeltaTimeFormat(DateTime.UtcNow - timestamp) + " ago: " + track + " - " + artist);
 				}
 				else
-				{
 					SendMessage(track + " - " + artist);
-				}
 			}
 
-			/* starcraft */
+			// starcraft
 			else if (message.StartsWith("sc", StringComparison.CurrentCulture) || message.StartsWith("starcraft", StringComparison.CurrentCulture))
 			{
-				MyGlobals.PlebianLag = DateTime.Now;
 				var data = DownloadData("http://us.battle.net/api/sc2/profile/310150/1/Destiny/matches");
 				var serializer = new JavaScriptSerializer();
 				dynamic json = serializer.Deserialize<object>(data.Result);
@@ -64,10 +61,9 @@
 					SendMessage("Destiny played a " + mainstring);
 			}
 
-			/* twitter */
+			// twitter
 			else if (message.StartsWith("twitter", StringComparison.CurrentCulture) || message.StartsWith("tweet", StringComparison.CurrentCulture))
 			{
-				MyGlobals.PlebianLag = DateTime.Now;
 				var twit = new OAuthTwitterWrapper.OAuthTwitterWrapper();
 				var twitterjson = JArray.Parse(@twit.GetMyTimeline());
 				var tweet = (string)twitterjson.SelectToken("[0].text");
@@ -85,47 +81,35 @@
 				SendMessage(DeltaTimeFormat(DateTime.UtcNow - timestamp) + " ago: " + tweet);
 			}
 
-			/* bancount */
+			// bancount
 			else if (message.StartsWith("bancount", StringComparison.CurrentCulture))
-			{
-				MyGlobals.PlebianLag = DateTime.Now;
 				SendMessage(MyGlobals.ModVariables["bancount"] + " victims reaped.");
-			}
-
-			/* time */
+			
+			// time
 			else if (message.StartsWith("time", StringComparison.CurrentCulture))
-			{
-				MyGlobals.PlebianLag = DateTime.Now;
 				SendMessage(DateTime.Now.ToShortTimeString() + " Central Steven Time");
-			}
-
-			/* rules */
+			
+			// rules
 			else if (message.StartsWith("rules", StringComparison.CurrentCulture))
-			{
-				MyGlobals.PlebianLag = DateTime.Now;
 				SendMessage("Rules: reddit.com/1aufkc");
-			}
-
-			/* playlist */
+			
+			// playlist
 			else if (message.StartsWith("playlist", StringComparison.CurrentCulture))
-			{
-				MyGlobals.PlebianLag = DateTime.Now;
 				SendMessage("Playlist at last.fm/user/StevenBonnellII");
-			}
-
-			/* referral links */
+			
+			// referral links
 			else if (message.StartsWith("refer", StringComparison.CurrentCulture))
-			{
-				MyGlobals.PlebianLag = DateTime.Now;
 				SendMessage("amazon.com/?tag=des000-20 ☜(ﾟヮﾟ☜) Amazon referral, buy anything within 24hrs ☜(⌒▽⌒)☞ 25$ off cellphone, runs on Sprint (☞ﾟヮﾟ)☞ z78nhc1gsa3.ting.com/");
-			}
 
-			/* sponsors */
+			// sponsors
 			else if (message.StartsWith("sponsor", StringComparison.CurrentCulture))
-			{
-				MyGlobals.PlebianLag = DateTime.Now;
 				SendMessage("feenixcollection.com ༼ ◔◡◔༽ dollar-shave-club.7eer.net/c/72409/74122/1969");
-			}
+
+			// if not a command
+			else
+				return;
+			
+			MyGlobals.PlebianLag = DateTime.Now;
 		}
 	}
 }
