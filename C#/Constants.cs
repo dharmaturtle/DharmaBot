@@ -14,8 +14,8 @@
 
 		// Compiled, so initialize it once
 		public static readonly Regex ParseRawIRC = new Regex(
-				@":(.*)!.*(?:privmsg).*?:(.*)",
-				RegexOptions.IgnoreCase | RegexOptions.Compiled);
+			@":(.*)!.*(?:privmsg).*?:(.*)",
+			RegexOptions.IgnoreCase | RegexOptions.Compiled);
 		
 		// Sequential, so we don't need to connect on every call
 		public static readonly db DBLogContext = new db(

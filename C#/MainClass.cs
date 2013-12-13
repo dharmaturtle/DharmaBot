@@ -163,18 +163,20 @@
 				{
 					var request = (HttpWebRequest)WebRequest.Create(link);
 					request.AllowAutoRedirect = false;
-					request.UserAgent = "Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.1.3) Gecko/20090824 Firefox/3.5.3 (.NET CLR 4.0.20506)";
-					var response = (HttpWebResponse)request.GetResponse();
-					if ((int)response.StatusCode == 301 || (int)response.StatusCode == 302)
+					////request.UserAgent = "Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.1.3) Gecko/20090824 Firefox/3.5.3 (.NET CLR 4.0.20506)";
+					using (var response = (HttpWebResponse)request.GetResponse())
 					{
-						redirectedto = response.Headers["Location"];
-						//// Log("Redirecting " + url + " to " + redirectedto + " because " + response.StatusCode);
-						cycle = 0;
-					}
-					else
-					{
-						Log("Not redirecting " + link + " because " + response.StatusCode);
-						cycle--;
+						if ((int)response.StatusCode == 301 || (int)response.StatusCode == 302)
+						{
+							redirectedto = response.Headers["Location"];
+							//// Log("Redirecting " + url + " to " + redirectedto + " because " + response.StatusCode);
+							cycle = 0;
+						}
+						else
+						{
+							Log("Not redirecting " + link + " because " + response.StatusCode);
+							cycle--;
+						}
 					}
 				}
 				catch (Exception ex)

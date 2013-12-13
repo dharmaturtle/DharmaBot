@@ -24,8 +24,8 @@
 			var dbModContext = new db(new SqlCeConnection("Data Source=|DataDirectory|IRCbotDB.sdf;Max Database Size=4091"));
 
 			if (x.Action == "message") SendMessage(x.Result);
-			if (x.CommandParameter == null) return;
-			if (userParameter.Length == 0) SendMessage("A word or name must be provided.");
+			else if (x.CommandParameter == null) return;
+			else if (userParameter.Length == 0) SendMessage("A word or name must be provided.");
 			else
 			{
 				switch (x.Action)

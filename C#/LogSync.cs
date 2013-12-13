@@ -13,7 +13,7 @@ namespace IRCbot
 	using System.Linq;
 	using System.Threading.Tasks.Dataflow;
 
-	public class LogSync : MainClass
+	public class LogSync
 	{
 		public void Consumer(ISourceBlock<Tuple<string, string, DateTime>> source)
 		{
@@ -31,7 +31,8 @@ namespace IRCbot
 			var stalk = Constants.DBLogContext.Stalk.SingleOrDefault(x => x.User == sender);
 
 			// If user doesn't exist, make new
-			if (stalk == null) Constants.DBLogContext.Stalk.InsertOnSubmit(new Stalk());
+			if (stalk == null)
+				Constants.DBLogContext.Stalk.InsertOnSubmit(new Stalk());
 			
 			// Update & save
 			stalk.User = sender;
